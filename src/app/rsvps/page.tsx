@@ -1,6 +1,9 @@
 import { getAllRSVPs } from '@/lib/cosmos'
 import { RSVPSubmission } from '@/app/interfaces/guest'
 
+// Force dynamic rendering - this page should not be statically generated
+export const dynamic = 'force-dynamic'
+
 export default async function RSVPsPage() {
   let rsvps: RSVPSubmission[] = []
   let error: string | null = null
