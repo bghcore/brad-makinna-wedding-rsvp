@@ -1,6 +1,6 @@
 import { RSVPSubmission, SafeGuestData } from "@/app/interfaces/guest";
-import { config } from "@/config";
 import { RSVPTabs } from "./tabs";
+import { getAllRSVPs, getAllGuests } from "@/lib/cosmos";
 
 // Force dynamic rendering - this page should not be statically generated
 export const dynamic = "force-dynamic";
@@ -11,24 +11,10 @@ export default async function RSVPsPage() {
   let error: string | null = null;
 
   try {
-    const [rsvpsResponse, guestsResponse] = await Promise.all([
-      fetch(`${config.site.url}/api/rsvps`, {
-        cache: "no-store",
-      }),
-      fetch(`${config.site.url}/api/guests`, {
-        cache: "no-store",
-      }),
+    [rsvps, guests] = await Promise.all([
+      getAllRSVPs(),
+      getAllGuests(),
     ]);
-
-    if (!rsvpsResponse.ok) {
-      throw new Error(`Failed to fetch RSVPs: ${rsvpsResponse.statusText}`);
-    }
-    if (!guestsResponse.ok) {
-      throw new Error(`Failed to fetch guests: ${guestsResponse.statusText}`);
-    }
-
-    rsvps = await rsvpsResponse.json();
-    guests = await guestsResponse.json();
   } catch (e) {
     error = e instanceof Error ? e.message : "Failed to fetch data";
   }
