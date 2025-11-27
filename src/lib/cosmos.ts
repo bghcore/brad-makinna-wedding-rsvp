@@ -1,6 +1,6 @@
 import { CosmosClient } from '@azure/cosmos'
 import { config } from '@/config'
-import { RSVPSubmission } from '@/app/interfaces/guest'
+import { RSVPSubmission, GuestListDocument, SafeGuestData } from '@/app/interfaces/guest'
 
 // Create a singleton instance of the CosmosClient
 const client = new CosmosClient({
@@ -59,6 +59,41 @@ export async function getAllRSVPs() {
     return resources as RSVPSubmission[]
   } catch (error) {
     console.error('Error fetching RSVPs from Cosmos DB:', error)
+    throw error
+  }
+}
+
+// Helper function to get all guests (without addresses)
+export async function getAllGuests(): Promise<SafeGuestData[]> {
+  try {
+    // Query all guests - we'll sort in JavaScript to handle missing fields gracefully
+    const querySpec = {
+      query: 'SELECT * FROM c',
+    }
+    const { resources } = await guestsContainer.items
+      .query(querySpec)
+      .fetchAll()
+    
+    // Remove address field from each guest document and sort
+    const safeGuests = resources.map((guest: GuestListDocument) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { address, ...safeGuest } = guest
+      return safeGuest as SafeGuestData
+    })
+    
+    // Sort by list (defaulting to empty string if missing), then by sortName
+    return safeGuests.sort((a, b) => {
+      const listA = a.list || ''
+      const listB = b.list || ''
+      if (listA !== listB) {
+        return listA.localeCompare(listB)
+      }
+      const sortNameA = a.sortName || ''
+      const sortNameB = b.sortName || ''
+      return sortNameA.localeCompare(sortNameB)
+    })
+  } catch (error) {
+    console.error('Error fetching guests from Cosmos DB:', error)
     throw error
   }
 }

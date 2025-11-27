@@ -1,29 +1,154 @@
-import { getAllRSVPs } from '@/lib/cosmos'
-import { RSVPSubmission } from '@/app/interfaces/guest'
+import { RSVPSubmission, SafeGuestData } from "@/app/interfaces/guest";
+import { config } from "@/config";
+import { RSVPTabs } from "./tabs";
 
 // Force dynamic rendering - this page should not be statically generated
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic";
 
 export default async function RSVPsPage() {
-  let rsvps: RSVPSubmission[] = []
-  let error: string | null = null
+  let rsvps: RSVPSubmission[] = [];
+  let guests: SafeGuestData[] = [];
+  let error: string | null = null;
 
   try {
-    rsvps = await getAllRSVPs()
+    const [rsvpsResponse, guestsResponse] = await Promise.all([
+      fetch(`${config.site.url}/api/rsvps`, {
+        cache: "no-store",
+      }),
+      fetch(`${config.site.url}/api/guests`, {
+        cache: "no-store",
+      }),
+    ]);
+
+    if (!rsvpsResponse.ok) {
+      throw new Error(`Failed to fetch RSVPs: ${rsvpsResponse.statusText}`);
+    }
+    if (!guestsResponse.ok) {
+      throw new Error(`Failed to fetch guests: ${guestsResponse.statusText}`);
+    }
+
+    rsvps = await rsvpsResponse.json();
+    guests = await guestsResponse.json();
   } catch (e) {
-    error = e instanceof Error ? e.message : 'Failed to fetch RSVPs'
+    error = e instanceof Error ? e.message : "Failed to fetch data";
   }
+
+  // Create a map of RSVP'd guest IDs for quick lookup
+  const rsvpMap = new Map<string, RSVPSubmission>();
+  rsvps.forEach((rsvp) => {
+    rsvpMap.set(rsvp.rsvpId, rsvp);
+    rsvpMap.set(rsvp.guestId, rsvp);
+  });
+
+  // Calculate total attending guests count from all RSVPs
+  const totalAttendingGuests = rsvps.reduce((total, rsvp) => {
+    if (rsvp.attending && rsvp.attendingGuests) {
+      return total + rsvp.attendingGuests.length;
+    }
+    return total;
+  }, 0);
+
+  // Calculate total pending people count (individual people, not parties)
+  const totalPendingPeople = guests.reduce((total, guest) => {
+    const hasRSVP = rsvpMap.has(guest.rsvpId) || rsvpMap.has(guest.id);
+    if (!hasRSVP) {
+      return total + (guest.guestCount || 0);
+    }
+    return total;
+  }, 0);
+
+  // Organize guests by list
+  const guestsByList = new Map<string, SafeGuestData[]>();
+  guests.forEach((guest) => {
+    const list = guest.list || "Other";
+    if (!guestsByList.has(list)) {
+      guestsByList.set(list, []);
+    }
+    guestsByList.get(list)!.push(guest);
+  });
+
+  // Sort lists alphabetically
+  const sortedLists = Array.from(guestsByList.keys()).sort();
+
+  // Prepare list data for tabs
+  const listsData = sortedLists.map((list) => {
+    const listGuests = guestsByList.get(list) || [];
+    const rsvpGuests = listGuests.filter(
+      (guest) => rsvpMap.has(guest.rsvpId) || rsvpMap.has(guest.id)
+    );
+    const pendingGuests = listGuests.filter(
+      (guest) => !rsvpMap.has(guest.rsvpId) && !rsvpMap.has(guest.id)
+    );
+
+    // Calculate attending guests count for this list
+    const listAttendingCount = rsvpGuests.reduce((total, guest) => {
+      const rsvp = rsvpMap.get(guest.rsvpId) || rsvpMap.get(guest.id);
+      if (rsvp?.attending && rsvp.attendingGuests) {
+        return total + rsvp.attendingGuests.length;
+      }
+      return total;
+    }, 0);
+
+    // Calculate pending people count for this list (individual people, not parties)
+    const listPendingPeople = pendingGuests.reduce((total, guest) => {
+      return total + (guest.guestCount || 0);
+    }, 0);
+
+    return {
+      listName: list,
+      guests: listGuests,
+      rsvpGuests,
+      pendingGuests,
+      listAttendingCount,
+      listPendingPeople,
+    };
+  });
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-black dark:text-zinc-50 mb-2">
-            RSVP Submissions
+            RSVP Status
           </h1>
-          <p className="text-lg text-zinc-600 dark:text-zinc-400">
-            Total submissions: {rsvps.length}
+          <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-4">
+            Total parties: {guests.length} | RSVPs received: {rsvps.length} |
+            Pending: {totalPendingPeople} people | Total attending:{" "}
+            {totalAttendingGuests}
           </p>
+
+          {/* List Summaries */}
+          {listsData.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              {listsData.map((list) => (
+                <div
+                  key={list.listName}
+                  className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4"
+                >
+                  <h3 className="font-semibold text-black dark:text-zinc-50 mb-2">
+                    List {list.listName}
+                  </h3>
+                  <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
+                    <p>Parties: {list.guests.length}</p>
+                    <p>
+                      RSVP&apos;d: {list.rsvpGuests.length} /{" "}
+                      {list.guests.length}
+                    </p>
+                    {list.listAttendingCount > 0 && (
+                      <p className="text-green-600 dark:text-green-400">
+                        Attending: {list.listAttendingCount}
+                      </p>
+                    )}
+                    {list.listPendingPeople > 0 && (
+                      <p className="text-orange-600 dark:text-orange-400">
+                        Pending: {list.listPendingPeople} people
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {error && (
@@ -32,112 +157,13 @@ export default async function RSVPsPage() {
           </div>
         )}
 
-        {rsvps.length === 0 && !error && (
-          <div className="text-center py-12">
-            <p className="text-xl text-zinc-600 dark:text-zinc-400">
-              No RSVPs found
-            </p>
+        {/* Tabs for Lists and RSVP Submissions */}
+        {!error && (
+          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
+            <RSVPTabs lists={listsData} rsvps={rsvps} rsvpMap={rsvpMap} />
           </div>
         )}
-
-        <div className="space-y-6">
-          {rsvps.map((rsvp) => (
-            <div
-              key={rsvp.rsvpId || rsvp.guestId}
-              className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
-                <div>
-                  <h2 className="text-2xl font-semibold text-black dark:text-zinc-50 mb-1">
-                    RSVP ID: {rsvp.rsvpId || rsvp.guestId}
-                  </h2>
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                    Guest ID: {rsvp.guestId}
-                  </p>
-                </div>
-                <div className="mt-2 sm:mt-0">
-                  <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                      rsvp.attending
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                        : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                    }`}
-                  >
-                    {rsvp.attending ? 'Attending' : 'Not Attending'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                    Attending Guests
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {rsvp.attendingGuests && rsvp.attendingGuests.length > 0 ? (
-                      rsvp.attendingGuests.map((guest, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                        >
-                          {guest}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-zinc-500 dark:text-zinc-400 text-sm">
-                        None
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                    Submitted At
-                  </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    {new Date(rsvp.submittedAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-
-              {rsvp.dietaryRestrictions && (
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                    Dietary Restrictions
-                  </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    {rsvp.dietaryRestrictions}
-                  </p>
-                </div>
-              )}
-
-              {rsvp.additionalNotes && (
-                <div className="mb-4">
-                  <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                    Additional Notes
-                  </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
-                    {rsvp.additionalNotes}
-                  </p>
-                </div>
-              )}
-
-              {rsvp.submittedBy && (
-                <div>
-                  <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
-                    Submitted By
-                  </h3>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    {rsvp.submittedBy}
-                  </p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
       </div>
     </div>
-  )
+  );
 }
-
