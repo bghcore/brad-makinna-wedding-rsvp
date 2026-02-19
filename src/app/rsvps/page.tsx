@@ -146,7 +146,7 @@ export default async function RSVPsPage() {
         {/* Tabs for Lists and RSVP Submissions */}
         {!error && (
           <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
-            <RSVPTabs lists={listsData} rsvps={rsvps} rsvpMap={rsvpMap} />
+            <RSVPTabs lists={listsData} rsvps={rsvps} rsvpMap={rsvpMap} guests={guests} />
           </div>
         )}
       </div>

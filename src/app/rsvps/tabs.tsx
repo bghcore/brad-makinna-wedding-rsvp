@@ -14,9 +14,10 @@ interface TabsProps {
   }[];
   rsvps: RSVPSubmission[];
   rsvpMap: Map<string, RSVPSubmission>;
+  guests: SafeGuestData[];
 }
 
-export function RSVPTabs({ lists, rsvps, rsvpMap }: TabsProps) {
+export function RSVPTabs({ lists, rsvps, rsvpMap, guests }: TabsProps) {
   const [activeTab, setActiveTab] = React.useState<string>(
     lists.length > 0 ? lists[0].listName : "rsvps"
   );
@@ -30,7 +31,7 @@ export function RSVPTabs({ lists, rsvps, rsvpMap }: TabsProps) {
     {
       id: "rsvps",
       label: `RSVP Submissions (${rsvps.length})`,
-      content: <RSVPsTabContent rsvps={rsvps} />,
+      content: <RSVPsTabContent rsvps={rsvps} guests={guests} />,
     },
   ];
 
@@ -205,7 +206,14 @@ function ListTabContent({
   );
 }
 
-function RSVPsTabContent({ rsvps }: { rsvps: RSVPSubmission[] }) {
+function RSVPsTabContent({ rsvps, guests }: { rsvps: RSVPSubmission[]; guests: SafeGuestData[] }) {
+  // Build a map from rsvpId and guestId → guest names
+  const guestNameMap = new Map<string, string>();
+  guests.forEach((guest) => {
+    if (guest.rsvpId) guestNameMap.set(guest.rsvpId, guest.names);
+    if (guest.id) guestNameMap.set(guest.id, guest.names);
+  });
+
   if (rsvps.length === 0) {
     return (
       <div className="text-center py-12">
@@ -226,10 +234,10 @@ function RSVPsTabContent({ rsvps }: { rsvps: RSVPSubmission[] }) {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4">
             <div>
               <h2 className="text-2xl font-semibold text-black dark:text-zinc-50 mb-1">
-                RSVP ID: {rsvp.rsvpId || rsvp.guestId}
+                {guestNameMap.get(rsvp.rsvpId) || guestNameMap.get(rsvp.guestId) || rsvp.rsvpId || rsvp.guestId}
               </h2>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                Guest ID: {rsvp.guestId}
+                RSVP ID: {rsvp.rsvpId || rsvp.guestId}
               </p>
             </div>
             <div className="mt-2 sm:mt-0">
