@@ -42,9 +42,28 @@ export function RSVPTabs({ lists, rsvps, rsvpMap, guests }: TabsProps) {
 
   return (
     <div className="w-full">
-      {/* Tab Headers */}
-      <div className="border-b border-zinc-200 dark:border-zinc-800 mb-6">
-        <nav className="flex space-x-1 overflow-x-auto" aria-label="Tabs">
+      {/* Mobile: Dropdown selector */}
+      <div className="sm:hidden mb-6">
+        <label htmlFor="tab-select" className="sr-only">
+          Select a tab
+        </label>
+        <select
+          id="tab-select"
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value)}
+          className="block w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-3 text-sm font-medium text-zinc-900 dark:text-zinc-100 focus:border-blue-500 focus:ring-blue-500"
+        >
+          {tabs.map((tab) => (
+            <option key={tab.id} value={tab.id}>
+              {tab.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Desktop: Tab Headers */}
+      <div className="hidden sm:block border-b border-zinc-200 dark:border-zinc-800 mb-6">
+        <nav className="flex flex-wrap gap-1" aria-label="Tabs">
           {tabs.map((tab) => (
             <button
               key={tab.id}
