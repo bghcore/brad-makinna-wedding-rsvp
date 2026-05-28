@@ -33,6 +33,11 @@ export function RSVPTabs({ lists, rsvps, rsvpMap, guests }: TabsProps) {
       label: `RSVP Submissions (${rsvps.length})`,
       content: <RSVPsTabContent rsvps={rsvps} guests={guests} />,
     },
+    {
+      id: "dietary",
+      label: `Dietary Restrictions (${rsvps.filter((r) => r.dietaryRestrictions).length})`,
+      content: <DietaryRestrictionsTabContent rsvps={rsvps} guests={guests} />,
+    },
   ];
 
   return (
@@ -318,6 +323,69 @@ function RSVPsTabContent({ rsvps, guests }: { rsvps: RSVPSubmission[]; guests: S
               </p>
             </div>
           )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DietaryRestrictionsTabContent({
+  rsvps,
+  guests,
+}: {
+  rsvps: RSVPSubmission[];
+  guests: SafeGuestData[];
+}) {
+  // Build a map from rsvpId and guestId → guest names
+  const guestNameMap = new Map<string, string>();
+  guests.forEach((guest) => {
+    if (guest.rsvpId) guestNameMap.set(guest.rsvpId, guest.names);
+    if (guest.id) guestNameMap.set(guest.id, guest.names);
+  });
+
+  // Filter to only RSVPs with dietary restrictions
+  const rsvpsWithDietary = rsvps.filter((rsvp) => rsvp.dietaryRestrictions);
+
+  if (rsvpsWithDietary.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-xl text-zinc-600 dark:text-zinc-400">
+          No dietary restrictions reported
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+        {rsvpsWithDietary.length} {rsvpsWithDietary.length === 1 ? "party has" : "parties have"} reported dietary restrictions or allergies.
+      </p>
+      {rsvpsWithDietary.map((rsvp) => (
+        <div
+          key={rsvp.rsvpId || rsvp.guestId}
+          className="bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 p-4"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-black dark:text-zinc-50 mb-1">
+                {guestNameMap.get(rsvp.rsvpId) ||
+                  guestNameMap.get(rsvp.guestId) ||
+                  rsvp.rsvpId ||
+                  rsvp.guestId}
+              </h3>
+              {rsvp.attendingGuests && rsvp.attendingGuests.length > 0 && (
+                <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
+                  Attending: {rsvp.attendingGuests.join(", ")}
+                </p>
+              )}
+              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md p-3">
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  {rsvp.dietaryRestrictions}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       ))}
     </div>
