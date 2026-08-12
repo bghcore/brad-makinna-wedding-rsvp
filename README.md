@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bradley & MaKinna Wedding — RSVP Admin (Archive)
+
+Admin dashboard that tracked wedding RSVP status by guest list (attending, pending, dietary restrictions).
+
+**Status:** Historical archive / portfolio demo of the RSVP admin used for Bradley & MaKinna Hanson’s wedding (married **July 11, 2026**).
+
+**All guest and RSVP data is fictional** (`src/data/demo-*.ts`). There is **no database**, no Azure Cosmos, and no password gate — pure static demo.
+
+Companion public site: [bradleyandmakinna.com](https://www.bradleyandmakinna.com) (`brad-makinna-wedding`).
+
+## Features (demo)
+
+- 📋 Guest parties organized by list (A / B / Family sample lists)
+- ✅ RSVP’d vs pending parties
+- 🥗 Dietary restrictions summary tab
+- 📝 Full RSVP submission detail (attending guests, notes, songs)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18.x or later
+- pnpm (preferred) or npm
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) — you land on `/rsvps` with demo data. No env vars required.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js (App Router)
+- React 19
+- Tailwind CSS v4

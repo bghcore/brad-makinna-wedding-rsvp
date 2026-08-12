@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getAllRSVPs } from '@/lib/cosmos'
+import { getAllRSVPs } from '@/lib/data-store'
 
 export async function GET() {
   try {
@@ -9,8 +9,7 @@ export async function GET() {
     console.error('Error fetching RSVPs:', error)
     return NextResponse.json(
       { error: 'Failed to fetch RSVPs' },
-      { status: 500 }
+      { status: 500 },
     )
   }
 }
-

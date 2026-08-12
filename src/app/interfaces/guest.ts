@@ -61,6 +61,7 @@ export interface GuestListDocument {
 }
 
 export interface RSVPSubmission {
+  id?: string
   guestId: string
   rsvpId: string
   attending: boolean
@@ -69,4 +70,5 @@ export interface RSVPSubmission {
   additionalNotes?: string
   submittedAt: string
   submittedBy?: string
+  group?: string | null
 }

@@ -1,23 +1,10 @@
 import { RSVPSubmission, SafeGuestData } from "@/app/interfaces/guest";
+import { getAllRSVPs, getAllGuests } from "@/lib/data-store";
 import { RSVPTabs } from "./tabs";
-import { getAllRSVPs, getAllGuests } from "@/lib/cosmos";
-
-// Force dynamic rendering - this page should not be statically generated
-export const dynamic = "force-dynamic";
 
 export default async function RSVPsPage() {
-  let rsvps: RSVPSubmission[] = [];
-  let guests: SafeGuestData[] = [];
-  let error: string | null = null;
-
-  try {
-    [rsvps, guests] = await Promise.all([
-      getAllRSVPs(),
-      getAllGuests(),
-    ]);
-  } catch (e) {
-    error = e instanceof Error ? e.message : "Failed to fetch data";
-  }
+  const [rsvps, guests]: [RSVPSubmission[], SafeGuestData[]] =
+    await Promise.all([getAllRSVPs(), getAllGuests()]);
 
   // Create a map of RSVP'd guest IDs for quick lookup
   const rsvpMap = new Map<string, RSVPSubmission>();
@@ -97,6 +84,10 @@ export default async function RSVPsPage() {
           <h1 className="text-4xl font-bold text-black dark:text-zinc-50 mb-2">
             RSVP Status
           </h1>
+          <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-3">
+            Demo data only — fictional parties for portfolio review. Real
+            guest PII was removed when this site was archived.
+          </p>
           <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-4">
             Total parties: {guests.length} | RSVPs received: {rsvps.length} |
             Pending: {totalPendingPeople} people | Total attending:{" "}
@@ -137,18 +128,10 @@ export default async function RSVPsPage() {
           )}
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-red-800 dark:text-red-200">Error: {error}</p>
-          </div>
-        )}
-
         {/* Tabs for Lists and RSVP Submissions */}
-        {!error && (
-          <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
-            <RSVPTabs lists={listsData} rsvps={rsvps} rsvpMap={rsvpMap} guests={guests} />
-          </div>
-        )}
+        <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-zinc-200 dark:border-zinc-800 p-6">
+          <RSVPTabs lists={listsData} rsvps={rsvps} rsvpMap={rsvpMap} guests={guests} />
+        </div>
       </div>
     </div>
   );
