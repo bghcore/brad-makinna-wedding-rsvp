@@ -19,7 +19,7 @@ Companion public site: [bradleyandmakinna.com](https://www.bradleyandmakinna.com
 
 ### Prerequisites
 
-- Node.js 18.x or later
+- Node.js 22.23.4, or a later 22.x release (see `.nvmrc`)
 - pnpm (preferred) or npm
 
 ### Installation
